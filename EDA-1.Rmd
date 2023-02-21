@@ -1,0 +1,154 @@
+---
+title: "EDA Lab 1: Introduction to Composing R Projects"
+author: "Gregory Palermo"
+date: "2023-02-07"
+output: html_document
+---
+
+# Some Basics of Working in RStudio
+
+## Start a New R Project
+
+The first thing we'll do is start a new R project for this lab.
+
+You can do this by going to the "File" menu and selecting "New Project." From there, select "New Directory" and find a good spot to create this new folder on your hard drive. (You may also notice that it's possible to create a project out of an existing directory.) Please name your project directory "EDA-Lab-1." (At this stage, no need to worry about the "renv" and "git repository" options—just keep those unchecked.) Don't hit "Create Project" just yet.
+
+On this panel, you can decide if you want to start a new session. That will be useful if you want to have multiple projects open at once; for now, however, leave this box unchecked. In that case, when you do go to create the project, this .Rmd file will close. So, before you do, locate where you downloaded this file on your hard drive. When you click "Create Project," you will then move it, outside RStudio, to the "EDA-labs" directory you created. Then, open up that file, either via the menu or the "Files" Panel. 
+
+If you look in the "Files" panel, you should now have two files in this directory: this file and a file called "EDA-labs.Rproj." There are a few reasons for organizing your R code into projects: 
+
+- Your environment, including your open documents, will be saved automatically. This can be useful for switching between projects on the fly.
+- It designates a "working directory" for your project. As we organize a directory structure, you will define any "filepaths" relative to this working directory.
+
+Run the following code to confirm that the "EDA-labs" directory is your current working directory.
+
+```{r}
+getwd()
+```
+
+If the working directory returned is not the one you expect or want, you can set it in two ways: through the menus for `Session --> Set Working` Directory, or by typing the command below into the console. The path to the directory you want should go inside the quotation marks. Remember that you can use your tab key to help you autocomplete fields in R; that can be very useful for getting to precisely the right folder on your hard drive. Having the "wrong" working directory specified can break the relative file paths in your project's code.
+
+```{r}
+setwd("")
+```
+
+When you construct a file path in R, your current working directory can be invoked with `.` and your computer user's home directory can be invoked with `~`. You can also tell R Studio to look backwards in the directory structure with `..` We'll experiment with this briefly over in the console. Keep in mind too that you can browse your files in in the `Files` pane of RStudio: it's over there next to `Environment`.
+
+## Making a folder structure.
+
+The next thing that we'll do is to create a directory structure to organize our data and analysis. What structure should this take on? Folks using R and other scripting languages for reproducible research have moved to develop conventions for organizing files and directories. Because the needs of data analysis projects differ from the needs of other purposes for scripting and programming, these research "compendia" differ slightly in form from other organizations of files. Here's an example of a simple directory structure for a project:
+
+```{txt}
+project
+|- DESCRIPTION          # project metadata and dependencies 
+|- README.md            # top-level description of content and guide to users
+|
+|- data/                # raw data, not changed once created
+|  +- my_data.csv       # data files in open formats such as TXT, CSV, TSV, etc.
+|
+|- analysis/            # any programmatic code 
+|  +- exploratory.Rmd     # R Markdown file with R code and text interwoven
+|- foo.rProj
+```
+
+Notice that the data and analysis are in different directories—there is a clear separation between the starting (if not "raw") data and the analysis. In this case, we have an R Markdown file peforming exploratory analysis is happening, based on the `.csv` file in the `data` subdirectory. We could imagine adding additional subdirectories for any outputs like reports or figures, or maybe an additional one. As our work progresses in sophistication, we might split the data subdirectory into `initial` and `processed`.
+
+There are [R libraries](https://marce10.github.io/sketchy/index.html) that will automate the process of building research compendia, but for now let's practice doing it manually. In the "Files" pane, click "New Folder" and create one called "data."
+
+# Working with Tabular Data in R
+
+## Importing Tabular Data
+
+First, let's load some necessary libraries that are part of the "tidyverse." If you don't yet have these installed, you can run the following line of code in the Console: `install.packages("tidyverse")`
+
+```{r}
+library(tidyverse)
+```
+
+This suite of packages is designed to work with "tidy" tabular data, the specifics of which we will discuss in class. The long and short is that, in tidy data, vectors (columns) are variables and rows are observations. The tidyverse uses a special case of data frames called the tibble, which you can read more about, if you'd like, by running `vignette("tibble")` in the console. 
+
+To convert data into a tibble, you can use the functions `as_data_frame` or `as_tibble`. (Most versions of functions in base R translated into the tidyverse replace the periods with underscores.) 
+
+Or, if we want to read in new data as a tibble, we can choose from a number of functions ot import tabluar data. It's generally useful to take the often formatted report files that you may be taking data from and work them into a csv in another space before reading them into R. In this case, we'll look at data in the "comma-separated variables format," or csv, which we can bring into R with the `read_csv` function. (If you are curious, this is the `read.table` functyion with some added constraints.)
+
+To give this a try, move the `1840-census-data.csv` file from your downloads into the `data` subdirectory that you created. We will then bring it into R, saving it the variable `census`:
+
+```{r}
+census <- read_csv(file = "./data/1840-census-data.csv")
+```
+
+When we first load in some data, there are a few functions we can run on a tibble to get a sense of what's there. For example, we can run `names` to get a vector with the variable names.
+
+```{r}
+names(census)
+```
+
+We can also use the `View` function to get a spreadsheet-like view.
+
+```{r}
+View(census)
+```
+
+We can isolate individual variables, returning a vector of values—one for each observation—with the `$` operator. The `summary` function will give us some basic statistics.
+
+```{r}
+summary(census$Newspapers)
+summary(census$FreeColoredPopulation)
+```
+
+## Subsetting Variables
+
+There's a lot here, in a very wide dataframe. To isolate only the variables that we care about, we can use the `select` function in `dplyr`.
+
+```{r}
+select(census, QualifyingAreaName, Newspapers, Newspapers_Daily, Newspapers_Weekly, Newspapers_SemiTriWeekly, Periodicals, PrintingOffices, Binderies, NumberofPersonsEmployedinPrintingBinding)
+```
+
+For more readable code, let's reform that slightly using another addition of the `tidyverse`: the pipe operator, `%>%`. This allows us to pass a variable or the output of a function to the first argument of another function. I also tend to like to specify variables on individual lines, for readability. This should do the same thing as the chunk above. This time, we'll store it in a new variable, `census_subset`.
+
+```{r}
+census_subset <- census %>%
+  select(
+    QualifyingAreaName,
+    Newspapers,
+    Newspapers_Daily,
+    Newspapers_Weekly,
+    Newspapers_SemiTriWeekly,
+    Periodicals,
+    PrintingOffices,
+    Binderies,
+    NumberofPersonsEmployedinPrintingBinding
+  )
+```
+
+Please note that you can also do this subsetting during the read-in step, should you know your dataset well and already have a list of variables. You can specify these using the combine function. Doing this can be useful if your data files are large.
+
+```{r}
+
+the_census <- read_csv(file="./data/1840-census-data.csv")[ , c("QualifyingAreaName", "Newspapers", "Newspapers_Daily", "Newspapers_Weekly", "Newspapers_SemiTriWeekly", "Periodicals", "PrintingOffices")]
+
+```
+
+It's also worth knowing that you can specify ranges of columns using a colon. Here, we specify variable names, but you can also do this with column index numbers.
+
+```{r}
+census %>%
+  select('QualifyingAreaName':'Female')
+```
+
+# Lab Exercise
+
+To practice and provide a deliverable for this lab, please:
+
+- Subset the data into a tibble that includes the area name and any aggregate population variables. (In other words, don't get as granular as age, so include `FreeColoredPopulation`, `FreeColored_Male`, and `FreeColored_Female`, but not `FreeColored_MaleAgeUnder10Years`). Save this data to a variable.
+```{r}
+populations <- census %>%
+  select(QualifyingAreaName, TotalPopulation:White_Male, White_Female, FreeColoredPopulation, FreeColored_Male, FreeColored_Female, SlavePopulation, Slave_Male, Slave_Female, FreePersons: PensionersofRevolutionaryWarorMilitaryService, CollegeUniversityStudents:LiterateWhiteAge20andOver, NumberofPersonsEmployedinPrintingBinding)
+```
+- Save the tibble that you create in the "data" subfolder using `write_csv`, with an appropriately descriptive filename.
+```{r}
+write_csv(populations, file = "1840-census-populations.csv")
+?write_csv()
+```
+- Zip up your project folder with its subfolders. On the Mac, you can right click your project directory in the Finder and select "Compress." On Windows, this option is under the "Send to" menu when you right click.
+- Upload the `.zip` file to Canvas.

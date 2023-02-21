@@ -1,0 +1,171 @@
+---
+title: 'EDA Lab 2: Environment Management and Version Control'
+author: "Gregory Palermo"
+date: "2023-02-07"
+output: html_document
+---
+
+In this lab, we'll be reviewing some basics of package management and version control for collaboration and reproducibility. When working with others on a project that involves coding, it can be useful to keep track of installed packages and the changes that you make as you work. Moreover, managing your computing environments helps to ensure that your code will run the same on their machines as it will on yours.
+
+This notebook is intended to help you explore some methods for putting reproducibility into practice in R. 
+
+Specifically, we will review:
+- installing and using `renv`, a library for managing R libraries and their dependencies;
+- creating a local git repository for your R project within RStudio; and
+- creating and interacting with a remote repository, hosted on GitHub, from within RStudio.
+
+While we will return to GitHub later in the semester in the context of making your code visible for others, our goal for now will be for you to be able to use GitHub, if you wish, to work together with your EDA project partner.
+
+# Package Management with `renv`
+
+First, we'll cover how to create "virtual environments" in R. Even if you are working alone, it is good practice to isolate your projects separate, installing libraries specific for each project. One reason for this is that code that you or others may have written might depend on functions present in a specific version of an R library or its dependencies. Other times, libraries installed for one project can cause conflicts with another when functions from multiple libraries have the same name, so keeping projects isolated can reduce work for you in specifying and troubleshooting when things don't work. And when you are collaborating with others on code in a common project repository, environment management ensures that everyone is using the same packages and versions.
+
+In R, we can use `renv` for this purpose. First, we'll install the `renv` library. The `type = "binary` argument elects to install a pre-compiled version rather than compiling the source on your machine, which is a much faster process. 
+
+```{r}
+install.packages("renv", type = "binary")
+```
+
+Then, we can initiate an R virtual environment. This may take a while, depending on the project, since it retrieves and installs all the packages you are using.
+
+```{r}
+renv::init()
+```
+
+Now, take a look in your Files pane. You should now have a file `renv.lock`, which is a "lockfile" of your R environment that lists packages and versions. There should also be a directory `renv`, which is where any libraries installed for this project will be installed instead of in your computer's system library.
+
+You can update this lockfile at any time by running `renv::snapshot()`. Some good times to do this could be, for example, when installing new packages, or otherwise before committing your code changes.
+
+What's the point of this lockfile? Given this file, a collaborator (or a future you) can run `renv::restore()` to install the listed libraries and their dependencies. Alternatively, one might run `renv::hydrate()` first, which is more efficient because it checks to see if the packages specified in the lockfile are installed in their user environment and attempts to copy them to the project library; if not, it will continue with the installation from scratch.
+
+There are a couple of caveats to note with `renv`:
+
+*	It will not capture *system* dependencies (anything that must be installed on your machine outside of R for the code to run, for example languages).
+* Re-installing packages can take a pretty long while, even using `hydrate`.
+* Replicating the virtual computing environment with renv requires a local install of R to run your code, which is isolated, and not everyone can do.
+
+This last point can be a barrier to full reproducibility. While `renv` is useful for collaborations if included in a shared repository, it doesn't make your work as accessible as it could be for engagement and review by peers and potential collaborators/employers. We will talk later in the semester about how to make our code accessible and executable for folks who may not have R installed.
+
+For now, however, let's look at how we might collaborate with someone on our project team.
+
+# Git and GitHub
+
+The current industry standard platform for collaborating on code and making it publicly available is GitHub, an internet hosting service for code. Github uses "git," a version control system; another industry standard, git is used for tracking changes in a set of computer files for the purposes of software development and data analysis.
+
+With git, you can make a repository (a location where data are stored and managed) for your project that's "local" to your computer, where changes to that repository are tracked. Initiating a git repository for a project lends a load of useful functionality, much of which is beyond our scope. For example, git repositories can have multiple "branches" so that new development can be isolated from the main part of a project. Repositories hosted on GitHub can be "forked," where a copy of a repository is worked on separately on your own user account and then potentially merged back into the main project with a "pull" request.
+
+This, however, is not a course on git, and I am far from an expert in it. What's useful for our purposes is being able to initiate and "push" a git repository to be hosted remotely on GitHub, "clone" a repository that's already hosted on GitHub to your local computer, and commit changes to either of these to be pushed to the remote repository. There are at least a few ways to make use of git and GitHub for your R projects. You could use:
+
+- the command line to init and commit to your local repository, and then to push it to GitHub with GH CLI or a web browser. You might do this if you have facility with the command line and using multiple development environments for your project. The tradeoff is that you need to be comfortable in the command line and also leave RStudio. You'll also need to set up and use temporary authentication tokens.
+- the GitHub Desktop client, a GUI app that makes interacting with GitHub pretty painless, especially because it doesn't require using tokens. Do this if you want a GUI solution and don't want to mess with authentication. The downside is, again, that you have to leave RStudio.
+- some tools within RStudio
+  - If a repository has already been initiated, you can use RStudio's built-in Git tab. This is what that checkbox when creating a new project does. Alternatively, you can go to your project options and enable it under the "Git/SVN" tab.
+  - You could use a [handy library](https://usethis.r-lib.org/index.html) from the develoeprs of RStudio called `usethis` to interact with git and GitHub from within RStudio, which will pop open a browser window for you when necessary.
+
+Any of these options will work, and you also don't have to pick and stick to a single one. For the purposes of this lab, to stay within RStudio and to allow you to follow along, we will use the `usethis` approach.
+
+## Creating a Local Repository with Git
+
+You can use the `usethis::use_git()` function to initialize a new local git repository in your working directory. This will also activate the Git pane in RStudio (FYI: if you already have a git repository in your working directory for whatever reason, this function will instead prompt you to commit any recent changes.)
+
+```{r}
+usethis::use_git()
+```
+
+This will now create a repository in a hidden subdirectory of your working directory, `.git`. There is also a `.gitignore` file, which tells git what files it should not track changes on in that directory. Go ahead and click on this file in the Files pane to see what's there. By default, git repositories initialized in R will add the hidden files that save your RStudio workspace, which other people don't need. You might also navigate into the `renv` folder and open that `.gitignore`. Here, git is ignoring tracking the project's library files, since what we want to track with `renv` are references to the libraries, rather than the libraries themselves.
+
+Now that these files have been added to your project folder, you can "commit" that set of changes to the git repository, creating a snapshot of the changes to your files since the previous commit. (Note the similarity to what `renv`'s `snapshot` function does, which is essentially to log the changes to libraries installed. Here, it's files added and removed more generally.) To, run the `usethis::use_git()` function again, following the instructions in the console. You will usually be prompted to add mandatory "message" describing what those changes are, but the first time the message "Initial commit" will be added for you.
+
+```{r}
+`usethis::use_git()`
+```
+
+## Getting and saving an authetnication token from GitHub
+
+You are now ready to "push" these committed changes in your repository—in this case, initializing one and adding files to it—to a remote repository on GitHub. Before continuing, please make sure that you have created a GitHub account, and you might also log in to that account on your web browser of choice.
+
+First, we'll use the library to create a Personal Access Token (PAT) on GH, which it uses to authenticate you. You'll need to do this once every set period of time, by default 30 days. The default options checked on this screen are fine here. The code below guides you through setup, opening a browser window to generate a PAT with the recommended settings already selected for you. As it says in the console, you can then use `gitcreds::gitcreds_set()` to store these credentials in memory for R to use. (I encourage you to store your PAT elsewhere too.)
+
+```{r}
+usethis::create_github_token()
+gitcreds::gitcreds_set()
+
+#PAT Safekeeping:
+```
+
+## Creating and pushing to an empty GitHub repository
+
+Now, we'll want to push your local git repository to a remote one on GitHub. A repository can be associated with multiple. To see a list of these, you can run `usethis::git_remotes()`. The first time, this should return `NULL` in the console.
+
+```{r}
+usethis::git_remotes()
+```
+
+You can create an empty repository on the GitHub website and then add the url to this remotes list with the `use_git_remotes()` function. Alternatively, you can create the repository itself from within RStudio by running `usethis::use_github()`. Again, follow the instructions in the console.
+
+```{r}
+usethis::use_github()
+```
+
+A web browser window should now open with a new repository, created from your local one! Lets find the list of remotes again.
+
+```{r}
+usethis::git_remotes()
+```
+
+Once you have a local and remote repository set up, I recommend that you use the Git pane within Rstudio. Here, you can click to commit individual changes and "push" those committed changes to your repository. You can also use "pull" to update your local repository with any commits that have been pushed by others to the remote on GitHub. Make sure you commit any local changes to your repository before pulling from the remote repository (you'll get an error message otherwise, so don't worry!).
+
+## Other ways to interact with Github with `usethis`
+
+### Cloning a remote repository
+
+What if you didn't want to create a new repository, but download a local copy of an existing remote repository that's connected to it? This is called "cloning," and you can also do that from within RStudio, with `usethis`'s `create_from_github` function. This will clone the repository to your Desktop by default, so you can move it manually or use `options` to specify a different directory. You can find a GitHub repository's URL under the `<> Code` button on the repository's main page.
+
+Go ahead and give that a try. It should open another RStudio Session with this new copy of the repository. (Make sure you don't get confused between them!)
+
+```{r}
+options(usethis.destdir = "your/directory/here")
+usethis::create_from_github("repo_URL-here")
+```
+
+### Forking a remote repository 
+
+Another option available besides from “cloning” is “forking,” which creates a copy of the repository on your GH account, before you would then clone that new variant of the repository.
+
+By default, the arg fork on the create_from_github() function is set to FALSE; that will clone the repository and keep the “remote” set to “origin”—i.e. the repository that you cloned.
+
+If you set fork equal to TRUE, however, this will fork the repository and clone it to your local machine. There will then be two “remotes”: the original repository will be in a remote called “upstream,” while the remote “origin” will be the forked repository on your GH. You can verify this with git_remotes().
+
+```{r}
+usethis::create_from_github("repo_URL-here",
+                            fork = TRUE
+                            )
+usethis::git_remotes()
+```
+
+### Adding to .gitignore
+
+Most of the time, you probably don’t want to track your outputs, whether they are processed data or figures. You also might not want to track and share documents with your private notes or large files.
+
+You can add the relative file paths manually (one on each line) to a file called .gitignore in your working directory. Besides clicking in the Files pane, another way to open your git repository’s `.gitignore` file is with the code below:
+
+```{r}
+usethis::edit_git_ignore()
+```
+
+Then, if you want to pass file paths from another part of your code or otherwise automate this process, you can also use use_this to do it from a character vector of file paths.
+
+```{r}
+files <- c("file1","file2")
+use_this::use_git_ignore(files)
+```
+
+# Lab Exercise
+
+To practice and provide a deliverable for this lab, please run through the above code and:
+- initialize `renv` to create a lockfile for your R project from Lab 1
+- create a local repository for this project.
+- create a GitHub token and use it to push that repository to your GitHub account, creating an account if you don't have one already
+- Upload the link for this repository to Canvas.
+
+Then you're done! You may wish to add this `.Rmd` file to your project directory, or you can implement the code in your own script or notebook. Please also note that you will get the same result if you initialize your git repository and get it on GitHub some other way, or create a GitHub repository and then clone it and add your project files to it. I won't be able to tell, but it's worth your while to practice these techniques.
