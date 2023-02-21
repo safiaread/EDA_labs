@@ -31,7 +31,6 @@ Then, we can initiate an R virtual environment. This may take a while, depending
 ```{r}
 renv::init()
 ```
-
 Now, take a look in your Files pane. You should now have a file `renv.lock`, which is a "lockfile" of your R environment that lists packages and versions. There should also be a directory `renv`, which is where any libraries installed for this project will be installed instead of in your computer's system library.
 
 You can update this lockfile at any time by running `renv::snapshot()`. Some good times to do this could be, for example, when installing new packages, or otherwise before committing your code changes.
